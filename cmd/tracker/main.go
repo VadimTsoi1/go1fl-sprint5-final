@@ -11,43 +11,50 @@ import (
 
 func main() {
 	person := personaldata.Personal{
-		Name:       "Витя",
-		Weight:     84.6,
-		Height:     187,  // Рост в сантиметрах
-		HeightUnit: "cm", // Явное указание единиц
+		Name:   "Витя",
+		Weight: 84.6,
+		Height: 1.87,
 	}
 
-	// Дневная активность
+	// дневная активность
 	input := []string{
-		"678,50m",
+		"678,0h50m",
 		"792,1h14m",
 		"1078,1h30m",
 		"7830,2h40m",
 		",3456",
-		"12:40:00,3456",
+		"12:40:00, 3456",
 		"something is wrong",
 	}
 
 	fmt.Println("Активность в течение дня")
 
-	dayStepsParser := &daysteps.DaySteps{Personal: person}
-	dayStepsParser.Print()
+	daySteps := daysteps.DaySteps{
+		Personal: person,
+	}
 
-	actioninfo.Info(input, dayStepsParser)
+	daySteps.Print()
 
-	// Тренировки
+	actioninfo.Info(input, &daySteps)
+
+	// // тренировки
 	actions := []string{
 		"3456,Ходьба,3h00m",
 		"something is wrong",
-		"678,Бег,5m",
-		"1078,Бег,10m",
-		",3456,Ходьба",
+		"678,Бег,0h5m",
+		"1078,Бег,0h10m",
+		",3456 Ходьба",
 		"7892,Ходьба,3h10m",
-		"15392,Бег,45m",
+		"15392,Бег,0h45m",
 	}
 
-	fmt.Println("\nЖурнал тренировок")
+	trains := trainings.Training{
+		Personal: person,
+	}
 
-	trainingParser := &trainings.Training{Personal: person}
-	actioninfo.Info(actions, trainingParser)
+	fmt.Println("Журнал тренировок")
+
+	trains.Print()
+
+	actioninfo.Info(actions, &trains)
 }
