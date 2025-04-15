@@ -2,6 +2,7 @@ package daysteps
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,45 +17,61 @@ type DaySteps struct {
 }
 
 func (ds *DaySteps) Parse(datastring string) error {
+	// Проверяем наличие пробелов в начале или в конце строки
+	if strings.HasPrefix(datastring, " ") || strings.HasSuffix(datastring, " ") {
+		return fmt.Errorf("invalid data format: leading or trailing spaces in input")
+	}
+
+	// Убираем пробелы в начале и в конце строки
+	datastring = strings.TrimSpace(datastring)
+
 	parts := strings.Split(datastring, ",")
 	if len(parts) != 2 {
-		return fmt.Errorf("неверный формат данных")
+		return fmt.Errorf("invalid data format")
 	}
 
-	// Парсинг шагов
-	if _, err := fmt.Sscanf(parts[0], "%d", &ds.Steps); err != nil {
-		return fmt.Errorf("ошибка парсинга шагов: %w", err)
+	// Проверяем наличие пробелов в начале или в конце значений
+	if strings.HasPrefix(parts[0], " ") || strings.HasSuffix(parts[0], " ") ||
+		strings.HasPrefix(parts[1], " ") || strings.HasSuffix(parts[1], " ") {
+		return fmt.Errorf("invalid data format: values contain leading or trailing spaces")
 	}
 
-	// Парсинг длительности
-	dur, err := time.ParseDuration(parts[1])
-	if err != nil {
-		return fmt.Errorf("ошибка парсинга времени: %w", err)
+	// Убираем пробелы внутри значений
+	parts[0] = strings.TrimSpace(parts[0])
+	parts[1] = strings.TrimSpace(parts[1])
+
+	// Проверяем, что шаги корректны
+	steps, err := strconv.Atoi(parts[0])
+	if err != nil || steps <= 0 {
+		return fmt.Errorf("invalid steps format")
 	}
-	ds.Duration = dur
+	ds.Steps = steps
+
+	// Проверяем, что продолжительность корректна
+	duration, err := time.ParseDuration(parts[1])
+	if err != nil || duration <= 0 {
+		return fmt.Errorf("invalid duration format")
+	}
+	ds.Duration = duration
 
 	return nil
 }
 
 func (ds DaySteps) ActionInfo() (string, error) {
-	if ds.Duration <= 0 {
-		return "", fmt.Errorf("некорректная продолжительность активности")
-	}
-
-	distance := spentenergy.Distance(ds.Steps)
+	distance := spentenergy.Distance(ds.Steps, ds.Height)
 	calories, err := spentenergy.WalkingSpentCalories(
 		ds.Steps,
-		ds.Personal.Weight,
-		ds.Personal.Height,
+		ds.Weight,
+		ds.Height,
 		ds.Duration,
 	)
 
 	if err != nil {
-		return "", fmt.Errorf("ошибка расчета калорий: %w", err)
+		return "", err
 	}
 
 	return fmt.Sprintf(
-		"Количество шагов: %d\nДистанция составила: %.2f км\nВы сожгли: %.2f ккал\n",
+		"Количество шагов: %d.\nДистанция составила %.2f км.\nВы сожгли %.2f ккал.\n",
 		ds.Steps,
 		distance,
 		calories,

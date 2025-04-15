@@ -5,58 +5,46 @@ import (
 	"time"
 )
 
-// Основные константы, необходимые для расчетов.
 const (
-	mInKm                              = 1000  // количество метров в километре
-	minInH                             = 60    // количество минут в часе
-	lenStep                            = 0.65  // длина одного шага в метрах
-	walkingCaloriesWeightMultiplier    = 0.035 // коэффициент для веса при ходьбе
-	walkingSpeedHeightMultiplier       = 0.029 // коэффициент для роста при ходьбе
-	runningCaloriesMeanSpeedMultiplier = 18    // множитель средней скорости бега
-	runningCaloriesMeanSpeedShift      = 1.79  // коэффициент изменения средней скорости
+	mInKm                      = 1000
+	minInH                     = 60
+	stepLengthCoefficient      = 0.45
+	walkingCaloriesCoefficient = 0.5
 )
 
-// Distance вычисляет дистанцию в километрах
-func Distance(steps int) float64 {
-	return float64(steps) * lenStep / mInKm
+func Distance(steps int, height float64) float64 {
+	stepLength := height * stepLengthCoefficient
+	return float64(steps) * stepLength / mInKm
 }
 
-// MeanSpeed вычисляет среднюю скорость
-func MeanSpeed(steps int, duration time.Duration) float64 {
-	if duration <= 0 {
+func MeanSpeed(steps int, height float64, duration time.Duration) float64 {
+	if steps < 0 || duration <= 0 {
 		return 0
 	}
-	return Distance(steps) / duration.Hours()
+	distance := Distance(steps, height)
+	hours := duration.Hours()
+	if hours == 0 {
+		return 0
+	}
+	return distance / hours
 }
 
-// WalkingSpentCalories расчёт калорий для ходьбы
-func WalkingSpentCalories(steps int, weight, height float64, duration time.Duration) (float64, error) {
-	if weight <= 0 || height <= 0 {
-		return 0, errors.New("некорректные параметры веса или роста")
+func RunningSpentCalories(steps int, weight, height float64, duration time.Duration) (float64, error) {
+	if steps <= 0 || weight <= 0 || height <= 0 || duration <= 0 {
+		return 0, errors.New("invalid parameters")
 	}
-	if duration <= 0 {
-		return 0, errors.New("некорректная продолжительность")
-	}
-
-	speed := MeanSpeed(steps, duration)
-	calories := (walkingCaloriesWeightMultiplier*weight +
-		(speed*speed/height)*walkingSpeedHeightMultiplier*weight) *
-		duration.Hours() * minInH
-
+	speed := MeanSpeed(steps, height, duration)
+	durationMin := duration.Minutes()
+	calories := (weight * speed * durationMin) / minInH
 	return calories, nil
 }
 
-// RunningSpentCalories расчёт калорий для бега
-func RunningSpentCalories(steps int, weight float64, duration time.Duration) (float64, error) {
-	if weight <= 0 {
-		return 0, errors.New("некорректный вес")
+func WalkingSpentCalories(steps int, weight, height float64, duration time.Duration) (float64, error) {
+	if steps <= 0 || weight <= 0 || height <= 0 || duration <= 0 {
+		return 0, errors.New("invalid parameters")
 	}
-	if duration <= 0 {
-		return 0, errors.New("некорректная продолжительность")
-	}
-
-	speed := MeanSpeed(steps, duration)
-	calories := (runningCaloriesMeanSpeedMultiplier*speed - runningCaloriesMeanSpeedShift) * weight
-
+	speed := MeanSpeed(steps, height, duration)
+	durationMin := duration.Minutes()
+	calories := (weight * speed * durationMin / minInH) * walkingCaloriesCoefficient
 	return calories, nil
 }
